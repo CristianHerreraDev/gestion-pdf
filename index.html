@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Visor de Documento</title>
+
+    <!-- Cargamos PDF.js desde CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
     <style>
         * {
             margin: 0;
@@ -14,29 +18,78 @@
             background-color: #2a2a2a;
             display: flex;
             justify-content: center;
-            align-items: center;
+            align-items: flex-start;
             min-height: 100vh;
             font-family: system-ui, -apple-system, sans-serif;
+            padding: 10px 0;
         }
-        .pdf-container {
+        #pdf-container {
             width: 100%;
-            max-width: 900px; /* Ancho máximo para mantener aspecto vertical en escritorio */
-            height: 100vh;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            max-width: 800px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
         }
-        iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
+        canvas {
+            width: 95% !important;
+            height: auto !important;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            border-radius: 4px;
+            background-color: #ffffff;
+        }
+        #loading {
+            color: #ffffff;
+            font-size: 1.1rem;
+            margin-top: 40px;
         }
     </style>
 </head>
 <body>
 
-    <div class="pdf-container">
-        <!-- Reemplaza 'documento.pdf' por el nombre o ruta de tu archivo PDF -->
-        <iframe src="documento.pdf#view=FitH" title="Documento PDF"></iframe>
-    </div>
+    <div id="loading">Cargando documento...</div>
+    <div id="pdf-container"></div>
+
+    <script>
+        // Configuración de la librería PDF.js
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        // NOMBRE DE TU ARCHIVO PDF
+        const url = 'documento.pdf';
+
+        const container = document.getElementById('pdf-container');
+        const loading = document.getElementById('loading');
+
+        // Cargar el documento
+        pdfjsLib.getDocument(url).promise.then(pdf => {
+            loading.style.display = 'none';
+
+            // Renderizar cada página una debajo de otra (scroll vertical)
+            for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                pdf.getPage(pageNum).then(page => {
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+                    
+                    // Escala por defecto para buena resolución
+                    const viewport = page.getViewport({ scale: 1.5 });
+
+                    canvas.height = viewport.height;
+                    canvas.width = viewport.width;
+
+                    const renderContext = {
+                        canvasContext: context,
+                        viewport: viewport
+                    };
+
+                    container.appendChild(canvas);
+                    page.render(renderContext);
+                });
+            }
+        }).catch(error => {
+            loading.innerText = 'Error al cargar el PDF. Verifica que el archivo exista.';
+            console.error(error);
+        });
+    </script>
 
 </body>
 </html>
